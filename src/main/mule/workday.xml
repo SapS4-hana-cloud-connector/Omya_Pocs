@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:servicenow="http://www.mulesoft.org/schema/mule/servicenow" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:workday="http://www.mulesoft.org/schema/mule/workday" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/workday http://www.mulesoft.org/schema/mule/workday/current/mule-workday.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<workday:config-version-32-config name="Workday_Config_version_32" doc:name="Workday Config version 32" doc:id="66beb486-3e48-4a8e-bac6-1fbed7f23716" >
+		<workday:basic-authentication-api-v32-connection userName="MuleSoft Outbound ISU" password="Workday@1" tenantName="omya_preview" hostName="wd3-impl-services1.workday.com"/>
+	</workday:config-version-32-config>
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="b322d6bc-5d46-4539-8553-52668c90d0b5" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="workdayFlow" doc:id="d47bbf63-27e4-47e4-82ba-324cb45f6f03" >
+		<http:listener doc:name="Listener" doc:id="77ff0cc7-e02f-4c97-ae82-7d6609d23af7" config-ref="HTTP_Listener_config" path="/workday"/>
+		<ee:transform doc:name="Transform Message" doc:id="3ef6ab1f-ca3a-4d2c-9e1f-915719d23272" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+ns ns0 urn:com.workday/bsvc
+---
+{
+	ns0#Get_Workers_Request: {
+		ns0#Request_References: {
+			ns0#Worker_Reference: {
+				ns0#ID @(ns0#'type': 'Employee_ID'): 205570
+			}
+		}
+	}
+}
+
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<workday:human-resources doc:name="Human resources" doc:id="57cff27b-344d-4799-8bed-bd9652108719" config-ref="Workday_Config_version_32" operation="Get_Workers">
+		</workday:human-resources>
+		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="ff058100-64d1-4528-824b-a110471c2f5f" />
+		<ee:transform doc:name="Transform Message" doc:id="624fa025-ab20-4be7-81ca-cc5793c648cd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+ns ns0 urn:com.workday/bsvc
+---
+payload.ns0#Get_Workers_Response]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
